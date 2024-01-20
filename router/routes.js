@@ -36,36 +36,37 @@ router.post('/api/tasks', async (req, res) => {
   }
 });
 // 1. Create Task API with jwt auth 
-router.post('/api/tasks', authenticateUser, async (req, res) => {
-  const userId = req.user.id;
-  try {
-    const { title, description, due_date } = req.body;
+// router.post('/api/tasks', authenticateUser, async (req, res) => {
+//   const userId = req.user.id;
+//   console.log(req.headers.authorization)
+//   try {
+//     const { title, description, due_date } = req.body;
 
-    if (!title || !description || !due_date) {
-      return res.status(400).json({ error: 'Title, description, and due_date are required fields' });
-    }
+//     if (!title || !description || !due_date) {
+//       return res.status(400).json({ error: 'Title, description, and due_date are required fields' });
+//     }
 
-    const priority = calculateTaskPriority(due_date);
+//     const priority = calculateTaskPriority(due_date);
 
-    const [newTask] = await knex('tasks')
-      .insert({
-        title,
-        description,
-        due_date,
-        priority,
-        status: 'TODO',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        deleted_at: null,
-        user_id: userId,
-      })
-      .returning('*');
-    res.status(201).json(newTask);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+//     const [newTask] = await knex('tasks')
+//       .insert({
+//         title,
+//         description,
+//         due_date,
+//         priority,
+//         status: 'TODO',
+//         created_at: new Date().toISOString(),
+//         updated_at: new Date().toISOString(),
+//         deleted_at: null,
+//         user_id: userId,
+//       })
+//       .returning('*');
+//     res.status(201).json(newTask);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
 // 2. Create Sub Task API 
 router.post('/api/subtasks', async (req, res) => {
   try {
@@ -254,7 +255,6 @@ router.delete('/api/tasks/:taskId', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 // 8. Delete Sub Task API
 router.delete('/api/subtasks/:subtaskId', async (req, res) => {
   try {
@@ -262,8 +262,8 @@ router.delete('/api/subtasks/:subtaskId', async (req, res) => {
     const userId = 1;
 
     // Check if the subtask exists
-    const subtaskIndex = subtasks.findIndex((st) => st.id === subtaskId && st.user_id === userId);
-    if (subtaskIndex === -1) {
+    const subtask = await knex('subtasks').where({ id: subtaskId, user_id: userId }).first();
+    if (!subtask) {
       return res.status(404).json({ error: 'Subtask not found' });
     }
 
@@ -278,4 +278,5 @@ router.delete('/api/subtasks/:subtaskId', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 module.exports = router;
