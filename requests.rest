@@ -1,17 +1,30 @@
 GET http://localhost:3000/api/
 
 @baseUrl = http://localhost:3000
-### 1. Create Task
+### 1. Create Task with jwt
 POST {{baseUrl}}/api/tasks
 Content-Type: application/json
+Authorization: Bearer 7d8a7f37ddf73515a2d9ba9d43e39d34fdd7a8f4183b06ee1a06a408013948f6c83e78332b571df29b946c4a50426e4594c7b4fd7f6f39eaf015289be379188c
 
 {
   "title": "New Task",
   "description": "Description for the new task",
   "due_date": "2024-01-25"
 }
+ ### 1. Create task without jwt 
+
+ POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+Authorization: Bearer 7d8a7f37ddf73515a2d9ba9d43e39d34fdd7a8f4183b06ee1a06a408013948f6c83e78332b571df29b946c4a50426e4594c7b4fd7f6f39eaf015289be379188c
+
+{
+  "title": "New Task",
+  "description": "Description for the new task",
+  "due_date": "2024-01-25"
+}
+
 ### 2. Create Sub Task
-POST {{baseUrl}}/api/tasks
+POST {{baseUrl}}/api/subtasks
 Content-Type: application/json
 
 {

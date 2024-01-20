@@ -3,6 +3,7 @@ const cron = require('node-cron');
 const twilio = require('twilio');
 const router = require('./router/routes');
 const bodyParser = require('body-parser');
+require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());

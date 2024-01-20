@@ -2,22 +2,17 @@ const express = require('express');
 const router = express.Router();  
 const knex = require('knex')(require('../knexfile')['development']);
 const calculateTaskPriority = require('../utils/helper');
+const authenticateUser = require('../middleware/authenticateUsers');
 
-
-router.get('/api/', (req, res) => {
-    return res.status(201).json('Hello!!');
-});
 // 1. Create Task API 
 router.post('/api/tasks', async (req, res) => {
-  console.log(req.body);
+  const userId = 1;
   try {
     const { title, description, due_date } = req.body;
 
     if (!title || !description || !due_date) {
       return res.status(400).json({ error: 'Title, description, and due_date are required fields' });
     }
-
-    const userId = 1;
 
     const priority = calculateTaskPriority(due_date);
 
@@ -34,42 +29,77 @@ router.post('/api/tasks', async (req, res) => {
         user_id: userId,
       })
       .returning('*');
-
     res.status(201).json(newTask);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+// 1. Create Task API with jwt auth 
+router.post('/api/tasks', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const { title, description, due_date } = req.body;
 
+    if (!title || !description || !due_date) {
+      return res.status(400).json({ error: 'Title, description, and due_date are required fields' });
+    }
+
+    const priority = calculateTaskPriority(due_date);
+
+    const [newTask] = await knex('tasks')
+      .insert({
+        title,
+        description,
+        due_date,
+        priority,
+        status: 'TODO',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        deleted_at: null,
+        user_id: userId,
+      })
+      .returning('*');
+    res.status(201).json(newTask);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 // 2. Create Sub Task API 
 router.post('/api/subtasks', async (req, res) => {
   try {
     const { task_id } = req.body;
+    
     if (!task_id) {
       return res.status(400).json({ error: 'Task ID is a required field' });
     }
+
     const userId = 1;
-    // Check if the task exists in the database
     const task = await knex('tasks').where({ id: task_id, user_id: userId }).first();
+
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
     const newSubTask = {
       task_id,
       status: 0,
-      created_at: new Date().toISOString(),
+      created_at: new Date().toISOString(), // Use the same format for created_at and updated_at
       updated_at: new Date().toISOString(),
       deleted_at: null,
     };
+
     const [subtaskId] = await knex('subtasks').insert(newSubTask);
     const createdSubTask = await knex('subtasks').where('id', subtaskId).first();
+
     return res.status(201).json(createdSubTask);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Failed to create subtask' });
   }
 });
+
 // 3. Get all task
 router.get('/api/tasks', async (req, res) => {
   try {
@@ -79,22 +109,17 @@ router.get('/api/tasks', async (req, res) => {
     if (priority) filters.priority = priority;
     if (due_date) filters.due_date = due_date;
 
-    // For simplicity, let's assume userId is 1 (replace with your actual user ID logic)
     const userId = 1;
-
-    // Build the initial query
     let query = knex('tasks')
       .select('*')
       .where({ user_id: userId, ...filters })
       .orderBy('due_date', 'asc');
 
-    // Apply pagination if limit is provided
     if (limit) {
       const offset = (page - 1) * limit;
       query = query.offset(offset).limit(limit);
     }
 
-    // Execute the query and handle results
     const userTasks = await query;
 
     return res.status(200).json(userTasks);
@@ -104,7 +129,7 @@ router.get('/api/tasks', async (req, res) => {
   }
 });
 
-// 4. Get All User Sub Tasks API (without JWT authentication)
+// 4. Get All User Sub Tasks API 
 router.get('/api/subtasks', async (req, res) => {
   try {
     const { task_id } = req.query;
@@ -123,7 +148,7 @@ router.get('/api/subtasks', async (req, res) => {
   }
 });
 
-// 5. Update Task API (without JWT authentication)
+// 5. Update Task API 
 router.put('/api/tasks/:taskId', async (req, res) => {
   try {
     const { taskId } = req.params;
@@ -137,7 +162,6 @@ router.put('/api/tasks/:taskId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid status value. Status must be either "TODO" or "DONE".' });
     }
 
-    // For simplicity, let's assume userId is 1 (replace with your actual user ID logic)
     const userId = 1;
 
     // Check if the task exists
@@ -159,7 +183,7 @@ router.put('/api/tasks/:taskId', async (req, res) => {
       .where({ id: taskId, user_id: userId })
       .update(updatedTask);
 
-    // Fetch and return the updated task
+    // Return the updated task
     const finalUpdatedTask = await knex('tasks').where({ id: taskId, user_id: userId }).first();
 
     return res.status(200).json(finalUpdatedTask);
@@ -169,8 +193,7 @@ router.put('/api/tasks/:taskId', async (req, res) => {
   }
 });
 
-// 6. Update Sub Task API (without JWT authentication)
-
+// 6. Update Sub Task API
 router.put('/api/subtasks/:subtaskId', async (req, res) => {
   try {
     const { subtaskId } = req.params;
@@ -180,7 +203,6 @@ router.put('/api/subtasks/:subtaskId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid status value. Status must be either 0 or 1.' });
     }
 
-    // For simplicity, let's assume userId is 1 (replace with your actual user ID logic)
     const userId = 1;
 
     // Check if the subtask exists
@@ -203,7 +225,7 @@ router.put('/api/subtasks/:subtaskId', async (req, res) => {
   }
 });
 
-// 7. Delete Task API (without JWT authentication)
+// 7. Delete Task API
 router.delete('/api/tasks/:taskId', async (req, res) => {
   try {
     const { taskId } = req.params;
@@ -213,7 +235,6 @@ router.delete('/api/tasks/:taskId', async (req, res) => {
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
-
     // Soft delete the task and its associated subtasks
     await knex.transaction(async (trx) => {
       // Soft delete task
@@ -234,7 +255,7 @@ router.delete('/api/tasks/:taskId', async (req, res) => {
   }
 });
 
-// 8. Delete Sub Task API (without JWT authentication)
+// 8. Delete Sub Task API
 router.delete('/api/subtasks/:subtaskId', async (req, res) => {
   try {
     const { subtaskId } = req.params;
