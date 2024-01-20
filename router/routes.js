@@ -5,40 +5,8 @@ const calculateTaskPriority = require('../utils/helper');
 const authenticateUser = require('../middleware/authenticateUsers');
 
 // 1. Create Task API 
-router.post('/api/tasks', async (req, res) => {
-  const userId = 1;
-  try {
-    const { title, description, due_date } = req.body;
-
-    if (!title || !description || !due_date) {
-      return res.status(400).json({ error: 'Title, description, and due_date are required fields' });
-    }
-
-    const priority = calculateTaskPriority(due_date);
-
-    const [newTask] = await knex('tasks')
-      .insert({
-        title,
-        description,
-        due_date,
-        priority,
-        status: 'TODO',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        deleted_at: null,
-        user_id: userId,
-      })
-      .returning('*');
-    res.status(201).json(newTask);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-// 1. Create Task API with jwt auth 
-// router.post('/api/tasks', authenticateUser, async (req, res) => {
-//   const userId = req.user.id;
-//   console.log(req.headers.authorization)
+// router.post('/api/tasks', async (req, res) => {
+//   const userId = 1;
 //   try {
 //     const { title, description, due_date } = req.body;
 
@@ -67,6 +35,38 @@ router.post('/api/tasks', async (req, res) => {
 //     res.status(500).json({ error: 'Internal Server Error' });
 //   }
 // });
+// 1. Create Task API with jwt auth 
+router.post('/api/tasks', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  console.log(req.headers.authorization)
+  try {
+    const { title, description, due_date } = req.body;
+
+    if (!title || !description || !due_date) {
+      return res.status(400).json({ error: 'Title, description, and due_date are required fields' });
+    }
+
+    const priority = calculateTaskPriority(due_date);
+
+    const [newTask] = await knex('tasks')
+      .insert({
+        title,
+        description,
+        due_date,
+        priority,
+        status: 'TODO',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        deleted_at: null,
+        user_id: userId,
+      })
+      .returning('*');
+    res.status(201).json(newTask);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 // 2. Create Sub Task API 
 router.post('/api/subtasks', async (req, res) => {
   try {
