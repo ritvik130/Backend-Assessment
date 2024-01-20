@@ -70,6 +70,7 @@ router.post('/api/subtasks', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+// 3. Get all task
 router.get('/api/tasks', async (req, res) => {
   try {
     const { priority, due_date, page, limit } = req.query;
@@ -102,44 +103,6 @@ router.get('/api/tasks', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-// router.get('/api/tasks', async (req, res) => {
-//   try {
-//     const { priority, due_date, page, limit } = req.query;
-
-//     const filters = {};
-//     if (priority) filters.priority = priority;
-//     if (due_date) filters.due_date = due_date;
-
-//     // For simplicity, let's assume userId is 1 (replace with your actual user ID logic)
-//     const userId = 1;
-
-//     // Fetch user tasks based on filters
-//     const query = knex('tasks')
-//       .select('*')
-//       .where({ user_id: 1, priority: '3', due_date: '2024-01-25' })
-//       .orderBy('due_date', 'asc')
-//       .then((result) => {
-//         console.log(result);
-//       })
-//       .catch((error) => {
-//         console.error(error);
-//       });
-
-//     if (limit) {
-//       const offset = (page - 1) * limit;
-//       query.offset(offset).limit(limit);
-//     }
-
-//     const userTasks = await query;
-
-//     return res.status(200).json(userTasks);
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
-
 
 // 4. Get All User Sub Tasks API (without JWT authentication)
 router.get('/api/subtasks', async (req, res) => {
